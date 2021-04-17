@@ -35,17 +35,22 @@ def fetch_geojson(
             selected_layers,
         )
 
+    http = urllib3.PoolManager()
+
     for layer in item.layers:
         if selected_layers is not None:
             if layer.properties.name not in selected_layers:
                 continue
 
-        results = layer.query()
         layer_id = layer.properties.id
-        file_name = f"{service_item_id}_{layer_id}.json"
-        print(f"Saving {layer.properties.name} layer to {file_name}")
-        results.save(output_dir, file_name)
+        geojson_url = f"https://opendata.arcgis.com/datasets/{service_item_id}_{layer_id}.geojson"
+        file_name = f"{service_item_id}_{layer_id}.geojson"
 
+        logger.info("(%d) %s => %s", layer_id, layer.properties.name, file_name)
+
+        resp = http.request("GET", geojson_url)
+        with open(join(output_dir, file_name), "wb") as out_file:
+            out_file.write(resp.data)
 
 def suggest_changing_selected_layers(
     service_item_id: str,
